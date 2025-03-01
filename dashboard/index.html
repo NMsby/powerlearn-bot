@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerLearn Bot Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .status-card {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-running { background-color: #2ecc71; }
+        .status-error { background-color: #e74c3c; }
+        .status-paused { background-color: #f39c12; }
+        .status-initializing { background-color: #3498db; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .success { color: #2ecc71; }
+        .error { color: #e74c3c; }
+        .refresh-time {
+            text-align: right;
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        .auto-refresh {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>PowerLearn Bot Status Dashboard</h1>
+
+    <div class="status-card">
+        <h2>
+            <span id="status-indicator" class="status-indicator"></span>
+            Current Status: <span id="current-status">Loading...</span>
+        </h2>
+        <p>
+            Running since: <span id="running-since">Loading...</span><br>
+            <span id="current-session-info">No active session</span>
+        </p>
+    </div>
+
+    <h2>Statistics</h2>
+    <div class="stats-grid">
+        <div class="stat-box">
+            <div class="stat-value" id="total-sessions">0</div>
+            <div class="stat-label">Total Sessions</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="successful-logins">0</div>
+            <div class="stat-label">Successful Logins</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="failed-logins">0</div>
+            <div class="stat-label">Failed Logins</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="successful-logouts">0</div>
+            <div class="stat-label">Successful Logouts</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="failed-logouts">0</div>
+            <div class="stat-label">Failed Logouts</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-value" id="errors">0</div>
+            <div class="stat-label">Errors</div>
+        </div>
+    </div>
+
+    <h2>Session History</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Start Time</th>
+                <th>Duration</th>
+                <th>Login Status</th>
+                <th>Logout Status</th>
+                <th>Activities</th>
+                <th>Errors</th>
+            </tr>
+        </thead>
+        <tbody id="session-history">
+            <tr>
+                <td colspan="6" style="text-align: center;">No sessions yet</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="auto-refresh">
+        <label>
+            <input type="checkbox" id="auto-refresh" checked> 
+            Auto refresh every 5 seconds
+        </label>
+    </div>
+
+    <div class="refresh-time">
+        Last updated: <span id="last-updated">Never</span>
+    </div>
+
+    <script>
+        function formatDateTime(timestamp) {
+            return new Date(timestamp * 1000).toLocaleString();
+        }
+
+        function formatDuration(seconds) {
+            if (seconds < 60) return Math.round(seconds) + " seconds";
+            if (seconds < 3600) return Math.round(seconds / 60) + " minutes";
+            return (seconds / 3600).toFixed(1) + " hours";
+        }
+
+        function updateDashboard() {
+            fetch('stats.json?' + new Date().getTime())
+                .then(response => response.json())
+                .then(data => {
+                    // Update status
+                    document.getElementById('current-status').textContent = data.status;
+                    document.getElementById('status-indicator').className = 
+                        'status-indicator status-' + data.status.toLowerCase();
+
+                    // Update running since
+                    document.getElementById('running-since').textContent = 
+                        formatDateTime(data.started_at);
+
+                    // Update current session
+                    if (data.current_session) {
+                        document.getElementById('current-session-info').textContent = 
+                            `Current session started at ${formatDateTime(data.current_session.start_time)}`;
+                    } else {
+                        document.getElementById('current-session-info').textContent = 
+                            'No active session';
+                    }
+
+                    // Update stats
+                    document.getElementById('total-sessions').textContent = data.total_sessions;
+                    document.getElementById('successful-logins').textContent = data.successful_logins;
+                    document.getElementById('failed-logins').textContent = data.failed_logins;
+                    document.getElementById('successful-logouts').textContent = data.successful_logouts;
+                    document.getElementById('failed-logouts').textContent = data.failed_logouts;
+                    document.getElementById('errors').textContent = data.errors;
+
+                    // Update session history
+                    const sessionHistoryTable = document.getElementById('session-history');
+                    if (data.last_10_sessions && data.last_10_sessions.length > 0) {
+                        sessionHistoryTable.innerHTML = '';
+                        data.last_10_sessions.forEach(session => {
+                            const row = document.createElement('tr');
+
+                            // Start Time
+                            const startTimeCell = document.createElement('td');
+                            startTimeCell.textContent = formatDateTime(session.start_time);
+                            row.appendChild(startTimeCell);
+
+                            // Duration
+                            const durationCell = document.createElement('td');
+                            if (session.end_time) {
+                                durationCell.textContent = formatDuration(session.end_time - session.start_time);
+                            } else {
+                                durationCell.textContent = 'In progress';
+                            }
+                            row.appendChild(durationCell);
+
+                            // Login Status
+                            const loginStatusCell = document.createElement('td');
+                            loginStatusCell.textContent = session.login_successful ? 'Success' : 'Failed';
+                            loginStatusCell.className = session.login_successful ? 'success' : 'error';
+                            row.appendChild(loginStatusCell);
+
+                            // Logout Status
+                            const logoutStatusCell = document.createElement('td');
+                            if (session.end_time) {
+                                logoutStatusCell.textContent = session.logout_successful ? 'Success' : 'Failed';
+                                logoutStatusCell.className = session.logout_successful ? 'success' : 'error';
+                            } else {
+                                logoutStatusCell.textContent = 'Pending';
+                            }
+                            row.appendChild(logoutStatusCell);
+
+                            // Activities
+                            const activitiesCell = document.createElement('td');
+                            if (session.activities) {
+                                activitiesCell.textContent = session.activities.length;
+                            } else {
+                                activitiesCell.textContent = '0';
+                            }
+                            row.appendChild(activitiesCell);
+
+                            // Errors
+                            const errorsCell = document.createElement('td');
+                            if (session.errors && session.errors.length > 0) {
+                                errorsCell.textContent = session.errors.length;
+                                errorsCell.className = 'error';
+                            } else {
+                                errorsCell.textContent = '0';
+                            }
+                            row.appendChild(errorsCell);
+
+                            sessionHistoryTable.appendChild(row);
+                        });
+                    } else {
+                        sessionHistoryTable.innerHTML = '<tr><td colspan="6" style="text-align: center;">No sessions yet</td></tr>';
+                    }
+
+                    // Update last updated time
+                    document.getElementById('last-updated').textContent = 
+                        formatDateTime(data.last_updated);
+                })
+                .catch(error => {
+                    console.error('Error fetching stats:', error);
+                });
+        }
+
+        // Initial update
+        updateDashboard();
+
+        // Auto refresh
+        let refreshInterval;
+
+        function startAutoRefresh() {
+            refreshInterval = setInterval(updateDashboard, 5000);
+        }
+
+        function stopAutoRefresh() {
+            clearInterval(refreshInterval);
+        }
+
+        document.getElementById('auto-refresh').addEventListener('change', function() {
+            if (this.checked) {
+                startAutoRefresh();
+            } else {
+                stopAutoRefresh();
+            }
+        });
+
+        // Start auto refresh by default
+        startAutoRefresh();
+    </script>
+</body>
+</html>
