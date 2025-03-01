@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  powerlearn-bot:
+    build: .
+    container_name: powerlearn-bot
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+      - ./screenshots:/app/screenshots
+      - ./dashboard:/app/dashboard
+      - ./.env:/app/.env
+    restart: unless-stopped
+    ports:
+      - "8080:8080"  # If you want to add a web server for the dashboard
