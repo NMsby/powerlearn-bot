@@ -1,0 +1,75 @@
+# PowerLearn LMS Bot Configuration
+
+# Browser Settings
+browser:
+  type: chromium  # chromium, firefox, or webkit
+  headless: true
+  viewport:
+    width: 1280
+    height: 800
+  timeout: 30000  # milliseconds
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+# LMS Settings
+lms:
+  url: "https://powerlearn.academy/login"  # Replace with actual login URL
+  dashboard_url: "https://powerlearn.academy/dashboard"  # Replace with actual dashboard URL
+  login_selectors:
+    username_field: "input#username"  # Replace with actual selector
+    password_field: "input#password"  # Replace with actual selector
+    submit_button: "button[type='submit']"  # Replace with actual selector
+  logged_in_indicators:
+    - ".dashboard-header"  # Replace with actual selectors that indicate successful login
+    - ".user-profile-link"
+  logout_selectors:
+    menu_button: ".user-menu"  # Replace with actual selector
+    logout_link: "a.logout-link"  # Replace with actual selector
+
+# Session Settings
+session:
+  duration: 900  # seconds (15 minutes)
+  pause_between: 300  # seconds (5 minutes)
+  max_retries: 3
+  backoff_factor: 2  # exponential backoff multiplier
+
+# Activity Simulation
+activity:
+  enabled: true
+  actions:
+    - type: "navigate"
+      urls:
+        - "https://powerlearn.academy/dashboard"
+        - "https://powerlearn.academy/courses"
+        - "https://powerlearn.academy/calendar"
+      probability: 0.7
+    - type: "scroll"
+      min_distance: 100
+      max_distance: 800
+      probability: 0.8
+    - type: "wait"
+      min_duration: 5
+      max_duration: 30
+      probability: 0.5
+  min_actions_per_session: 3
+  max_actions_per_session: 10
+
+# Proxy Settings
+proxy:
+  enabled: false
+  url: ""  # Set via environment variable
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file: "logs/powerlearn_bot.log"
+  max_size: 10485760  # 10MB
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Screenshots
+screenshots:
+  enabled: true
+  on_error: true
+  periodic: false
+  periodic_interval: 300  # seconds
+  path: "screenshots/"
