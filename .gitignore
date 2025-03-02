@@ -13,6 +13,10 @@ __pycache__/
 logs/
 screenshots/
 
+# Dashboard
+dashboard/stats.json
+dashboard/index.html
+
 # IDE specific files
 .idea/
 .vscode/
