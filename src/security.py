@@ -32,20 +32,20 @@ class SecurityManager:
         Get LMS credentials from environment variables.
 
         Returns:
-            Dictionary containing username and password
+            Dictionary containing email and password
 
         Raises:
             ValueError: If credentials are not set
         """
-        username = os.getenv('POWERLEARN_USERNAME')
+        email = os.getenv('POWERLEARN_EMAIL') or os.getenv('POWERLEARN_USERNAME')
         password = os.getenv('POWERLEARN_PASSWORD')
 
-        if not username or not password:
+        if not email or not password:
             logger.error("Credentials not found in environment variables")
             raise ValueError("LMS credentials must be set in environment variables")
 
         return {
-            'username': username,
+            'email': email,
             'password': password
         }
 

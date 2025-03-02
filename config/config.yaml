@@ -3,7 +3,7 @@
 # Browser Settings
 browser:
   type: chromium  # chromium, firefox, or webkit
-  headless: true
+  headless: false
   viewport:
     width: 1280
     height: 800
@@ -12,23 +12,26 @@ browser:
 
 # LMS Settings
 lms:
-  url: "https://powerlearn.academy/login"  # Replace with actual login URL
-  dashboard_url: "https://powerlearn.academy/dashboard"  # Replace with actual dashboard URL
+  url: "https://academy.powerlearnprojectafrica.org/login"  # LMS Login Page
+  dashboard_url: "https://academy.powerlearnprojectafrica.org/"  # LMS My Learning page
   login_selectors:
-    username_field: "input#username"  # Replace with actual selector
-    password_field: "input#password"  # Replace with actual selector
-    submit_button: "button[type='submit']"  # Replace with actual selector
+    email_field: "input[name='email']"  # Email field
+    password_field: "input[name='password']"  # Password field
+    submit_button: "button[type='submit']"  # Login submit button
   logged_in_indicators:
-    - ".dashboard-header"  # Replace with actual selectors that indicate successful login
-    - ".user-profile-link"
+    - ".MuiAvatar-root.MuiAvatar-circular"  # User avatar in header
+    - ".h-screen.top-32.fixed.w-1\/6.hidden.xl\\:flex"  # Sidebar navigation that only appears when logged in
+    - "[data-testid='DashboardIcon']"  # Dashboard icon in sidebar
+    - "[href='/dashboard']"  # Dashboard link
+    - "[href='/submissions']"  # Submissions link
   logout_selectors:
-    menu_button: ".user-menu"  # Replace with actual selector
-    logout_link: "a.logout-link"  # Replace with actual selector
+    menu_button: ".MuiButtonBase-root.MuiIconButton-root .MuiAvatar-root, .MuiButtonBase-root.MuiIconButton-root .MuiAvatar-img"  # Avatar button that opens popup
+    logout_link: ".MuiListItemButton-root:has([data-testid='LogoutIcon'])"  # The list item button containing the logout icon
 
 # Session Settings
 session:
-  duration: 900  # seconds (15 minutes)
-  pause_between: 300  # seconds (5 minutes)
+  duration: 300  # seconds (5 minutes)
+  pause_between: 10  # seconds
   max_retries: 3
   backoff_factor: 2  # exponential backoff multiplier
 
@@ -38,20 +41,14 @@ activity:
   actions:
     - type: "navigate"
       urls:
-        - "https://powerlearn.academy/dashboard"
-        - "https://powerlearn.academy/courses"
-        - "https://powerlearn.academy/calendar"
-      probability: 0.7
-    - type: "scroll"
-      min_distance: 100
-      max_distance: 800
-      probability: 0.8
+        - "https://academy.powerlearnprojectafrica.org/dashboard"
+      probability: 1.0
     - type: "wait"
-      min_duration: 5
+      min_duration: 10
       max_duration: 30
       probability: 0.5
   min_actions_per_session: 3
-  max_actions_per_session: 10
+  max_actions_per_session: 4
 
 # Proxy Settings
 proxy:

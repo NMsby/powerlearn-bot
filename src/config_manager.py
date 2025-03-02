@@ -47,9 +47,16 @@ class ConfigManager:
 
     def _override_with_env(self) -> None:
         """Override configuration with environment variables."""
+
         # Browser settings
-        if os.getenv('HEADLESS_MODE'):
+        if os.getenv('HEADLESS_MODE') is not None:
             self.config['browser']['headless'] = os.getenv('HEADLESS_MODE').lower() == 'true'
+
+        if os.getenv('BROWSER_TYPE'):
+            self.config['browser']['type'] = os.getenv('BROWSER_TYPE')
+
+        # Load LMS URLs from environment
+        self._load_lms_urls_from_env()
 
         # Proxy settings
         if os.getenv('USE_PROXY'):
@@ -68,6 +75,58 @@ class ConfigManager:
                 self.config['session']['duration'] = int(os.getenv('SESSION_DURATION'))
             except ValueError:
                 logger.warning(f"Invalid SESSION_DURATION value: {os.getenv('SESSION_DURATION')}")
+
+        # Override pause between duration if set
+        if os.getenv('PAUSE_BETWEEN'):
+            try:
+                self.config['session']['pause_between'] = int(os.getenv('PAUSE_BETWEEN'))
+            except ValueError:
+                logger.warning(f"Invalid PAUSE_BETWEEN value: {os.getenv('PAUSE_BETWEEN')}")
+
+        # Activity simulation settings
+        if os.getenv('ACTIVITY_ENABLED'):
+            self.config['activity']['enabled'] = os.getenv('ACTIVITY_ENABLED').lower() == 'true'
+
+        if os.getenv('MIN_ACTIONS'):
+            try:
+                self.config['activity']['min_actions_per_session'] = int(os.getenv('MIN_ACTIONS'))
+            except ValueError:
+                logger.warning(f"Invalid MIN_ACTIONS value: {os.getenv('MIN_ACTIONS')}")
+
+        if os.getenv('MAX_ACTIONS'):
+            try:
+                self.config['activity']['max_actions_per_session'] = int(os.getenv('MAX_ACTIONS'))
+            except ValueError:
+                logger.warning(f"Invalid MAX_ACTIONS value: {os.getenv('MAX_ACTIONS')}")
+
+        # Screenshot settings
+        if os.getenv('SCREENSHOTS_ENABLED'):
+            self.config['screenshots']['enabled'] = os.getenv('SCREENSHOTS_ENABLED').lower() == 'true'
+
+        if os.getenv('SCREENSHOTS_ON_ERROR'):
+            self.config['screenshots']['on_error'] = os.getenv('SCREENSHOTS_ON_ERROR').lower() == 'true'
+
+    def _load_lms_urls_from_env(self) -> None:
+        """Load LMS URLs from environment variables if provided."""
+        if os.getenv('LMS_LOGIN_URL'):
+            self.config['lms']['url'] = os.getenv('LMS_LOGIN_URL')
+
+        if os.getenv('LMS_DASHBOARD_URL'):
+            self.config['lms']['dashboard_url'] = os.getenv('LMS_DASHBOARD_URL')
+
+        # Load activity URLs from environment
+        if os.getenv('ACTIVITY_URLS'):
+            try:
+                # Split by comma and strip whitespace
+                urls = [url.strip() for url in os.getenv('ACTIVITY_URLS').split(',')]
+                if urls:
+                    # Find the navigate action and update its URLs
+                    for action in self.config['activity']['actions']:
+                        if action['type'] == 'navigate':
+                            action['urls'] = urls
+                            break
+            except Exception as e:
+                logger.warning(f"Failed to parse ACTIVITY_URLS: {e}")
 
     def get(self, key: str, default: Any = None) -> Any:
         """

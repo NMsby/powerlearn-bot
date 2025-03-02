@@ -147,7 +147,7 @@ class BrowserController:
 
             # Get selectors
             selectors = self.lms_config.get('login_selectors', {})
-            username_field = selectors.get('username_field')
+            email_field = selectors.get('email_field')
             password_field = selectors.get('password_field')
             submit_button = selectors.get('submit_button')
 
@@ -156,7 +156,7 @@ class BrowserController:
 
             # Fill login form
             logger.debug("Filling login form...")
-            self.page.fill(username_field, credentials['username'])
+            self.page.fill(email_field, credentials['email'])
             self.page.fill(password_field, credentials['password'])
 
             # Take screenshot before submitting (if enabled)
