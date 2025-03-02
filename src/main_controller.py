@@ -48,7 +48,13 @@ class MainController:
         self.screenshot_manager = ScreenshotManager(self.config['screenshots'])
         self.session_validator = SessionValidator(self.config)
         self.activity_simulator = ActivitySimulator(self.config['activity'])
-        self.monitoring = MonitoringManager()
+
+        # Initialize monitoring
+        dashboard_port = self.config.get('monitoring', {}).get('port', 8080)
+        self.monitoring = MonitoringManager(server_port=dashboard_port)
+
+        # Log Message about the dashboard
+        self.logger.info(f"Monitoring dashboard available at http://localhost:{dashboard_port}")
 
         # Browser controller will be initialized during run
         self.browser_controller = None

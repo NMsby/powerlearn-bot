@@ -48,6 +48,20 @@ class ConfigManager:
     def _override_with_env(self) -> None:
         """Override configuration with environment variables."""
 
+        # Monitoring settings
+        if os.getenv('DASHBOARD_PORT'):
+            try:
+                if 'monitoring' not in self.config:
+                    self.config['monitoring'] = {}
+                self.config['monitoring']['port'] = int(os.getenv('DASHBOARD_PORT'))
+            except ValueError:
+                logger.warning(f"Invalid DASHBOARD_PORT value: {os.getenv('DASHBOARD_PORT')}")
+
+        if os.getenv('DASHBOARD_ENABLED'):
+            if 'monitoring' not in self.config:
+                self.config['monitoring'] = {}
+            self.config['monitoring']['enabled'] = os.getenv('DASHBOARD_ENABLED').lower() == 'true'
+
         # Browser settings
         if os.getenv('HEADLESS_MODE') is not None:
             self.config['browser']['headless'] = os.getenv('HEADLESS_MODE').lower() == 'true'

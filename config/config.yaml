@@ -1,5 +1,10 @@
 # PowerLearn LMS Bot Configuration
 
+# Monitoring Settings
+monitoring:
+  port: 8080
+  enabled: true
+
 # Browser Settings
 browser:
   type: chromium  # chromium, firefox, or webkit

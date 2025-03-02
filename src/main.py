@@ -51,6 +51,11 @@ def main():
 
     # Create and start the main controller
     controller = MainController(args.config)
+    # Add these debug lines
+    print("Initializing monitoring...")
+    controller.monitoring.update_status("initializing")
+    print("Dashboard should be created at:", controller.monitoring.dashboard_path)
+    print("Stats file should be at:", controller.monitoring.stats_file)
     controller.start()
 
 

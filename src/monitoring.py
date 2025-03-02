@@ -2,10 +2,12 @@
 Monitoring module for PowerLearn LMS Bot.
 Tracks session statistics and updates the status dashboard.
 """
-
+import http.server
 import json
 import logging
 import os
+import socketserver
+import threading
 import time
 from typing import Dict, Any, Optional
 
@@ -15,15 +17,20 @@ logger = logging.getLogger(__name__)
 class MonitoringManager:
     """Manages monitoring and status dashboard for the PowerLearn LMS Bot."""
 
-    def __init__(self, dashboard_path: str = "dashboard/index.html"):
+    def __init__(self, dashboard_path: str = "dashboard/index.html", server_port: int = 8080):
         """
         Initialize the monitoring manager.
 
         Args:
             dashboard_path: Path to the dashboard HTML file
+            server_port: Port number for the dashboard HTTP server
         """
         self.dashboard_path = dashboard_path
-        self.stats_file = "dashboard/stats.json"
+        self.dashboard_dir = os.path.dirname(self.dashboard_path)
+        self.stats_file = os.path.join(self.dashboard_dir, "stats.json")
+        self.server_port = server_port
+        self.server_thread = None
+
         self.stats = {
             "started_at": time.time(),
             "last_updated": time.time(),
@@ -39,11 +46,44 @@ class MonitoringManager:
         }
 
         # Create dashboard directory if it doesn't exist
-        os.makedirs(os.path.dirname(dashboard_path), exist_ok=True)
+        os.makedirs(self.dashboard_path, exist_ok=True)
 
         # Initialize dashboard files
         self._init_dashboard()
         self._save_stats()
+
+        # Start the web server
+        self._start_web_server()
+
+    def _start_web_server(self):
+        """Start a simple HTTP server to serve the dashboard."""
+        # Define a custom handler that serves from the dashboard directory
+        class DashboardHandler(http.server.SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                # Use the dashboard directory for serving files
+                super().__init__(*args, directory=self.dashboard_dir, **kwargs)
+
+            def log_message(self, format, *args):
+                # Redirect server logs to our logger
+                logger.debug(f"Dashboard server: {format % args}")
+
+        # Bind the handler to the MonitoringManager instance
+        DashboardHandler.dashboard_dir = self.dashboard_dir
+
+        def run_server():
+            """Run the HTTP server in a separate thread."""
+            try:
+                # Try to create the server - will fail if port is in use
+                with socketserver.TCPServer(("localhost", self.server_port), DashboardHandler) as httpd:
+                    logger.info(f"Dashboard server started at http://localhost:{self.server_port}")
+                    httpd.serve_forever()
+            except OSError as e:
+                logger.error(f"Failed to start dashboard server: {e}")
+                logger.info("Dashboard will still be available as static files")
+
+        # Start the server in a separate thread
+        self.server_thread = threading.Thread(target=run_server, daemon=True)
+        self.server_thread.start()
 
     def _init_dashboard(self) -> None:
         """Initialize the dashboard HTML file if it doesn't exist."""
