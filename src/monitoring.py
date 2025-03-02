@@ -2,6 +2,8 @@
 Monitoring module for PowerLearn LMS Bot.
 Tracks session statistics and updates the status dashboard.
 """
+import base64
+import functools
 import http.server
 import json
 import logging
@@ -17,19 +19,26 @@ logger = logging.getLogger(__name__)
 class MonitoringManager:
     """Manages monitoring and status dashboard for the PowerLearn LMS Bot."""
 
-    def __init__(self, dashboard_path: str = "dashboard/index.html", server_port: int = 8080):
+    def __init__(self, dashboard_path: str = "dashboard/index.html", server_port: int = 8080,
+                 auth_enabled: bool = False, username: str = None, password: str = None,):
         """
         Initialize the monitoring manager.
 
         Args:
             dashboard_path: Path to the dashboard HTML file
             server_port: Port number for the dashboard HTTP server
+            auth_enabled: Whether authentication is enabled.
+            username: Username for basic authenticate.
+            password: Password for basic authenticate.
         """
         self.dashboard_path = dashboard_path
         self.dashboard_dir = os.path.dirname(self.dashboard_path)
         self.stats_file = os.path.join(self.dashboard_dir, "stats.json")
         self.server_port = server_port
         self.server_thread = None
+        self.auth_enabled = auth_enabled
+        self.username = username
+        self.password = password
 
         self.stats = {
             "started_at": time.time(),
@@ -57,7 +66,11 @@ class MonitoringManager:
 
     def _start_web_server(self):
         """Start a simple HTTP server to serve the dashboard."""
-        # Define a custom handler that serves from the dashboard directory
+
+        # Store reference to self for use in the handler
+        monitoring_manager = self
+
+        # Custom handler that serves from the dashboard directory
         class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             def __init__(self, *args, **kwargs):
                 # Use the dashboard directory for serving files
@@ -67,15 +80,53 @@ class MonitoringManager:
                 # Redirect server logs to our logger
                 logger.debug(f"Dashboard server: {format % args}")
 
-        # Bind the handler to the MonitoringManager instance
-        DashboardHandler.dashboard_dir = self.dashboard_dir
+            def do_GET(self):
+                """Handle GET requests with optional authentication."""
+                if monitoring_manager.auth_enabled:
+                    # Check for authentication
+                    if self._authenticate():
+                        # If authenticated, proceed with the request
+                        super().do_GET()
+                    else:
+                        # If not authenticated, request authentication
+                        self.send_response(401)
+                        self.send_header('WWW-Authenticate', 'Basic realm="PowerLearn Bot Dashboard"')
+                        self.send_header('Content-type', 'text/html')
+                        self.end_headers()
+                        self.wfile.write(b'Authentication required')
+                else:
+                    # No authentication required proceed
+                    super().do_GET()
+
+            def _authenticate(self):
+                """Check if the request has valid authentication."""
+                auth_header = self.headers.get('Authorization')
+                if auth_header:
+                    # Extract credentials from the Authorization header
+                    auth_type, auth_data = auth_header.split(' ', 1)
+                    if auth_type.lower() == 'basic':
+                        try:
+                            # Decode the base64 credentials
+                            decoded_auth = base64.b64decode(auth_data).decode('utf-8')
+                            username, password = decoded_auth.split(':', 1)
+
+                            # Check against configured credentials
+                            return (username == monitoring_manager.username and
+                                    password == monitoring_manager.password)
+                        except Exception as e:
+                            logger.warning(f"Authentication error: {e}")
+
+                return False
 
         def run_server():
             """Run the HTTP server in a separate thread."""
             try:
                 # Try to create the server - will fail if port is in use
                 with socketserver.TCPServer(("localhost", self.server_port), DashboardHandler) as httpd:
-                    logger.info(f"Dashboard server started at http://localhost:{self.server_port}")
+                    if self.auth_enabled:
+                        logger.info(f"Dashboard server started with authentication at http://localhost:{self.server_port}")
+                    else:
+                        logger.info(f"Dashboard server started at http://localhost:{self.server_port}")
                     httpd.serve_forever()
             except OSError as e:
                 logger.error(f"Failed to start dashboard server: {e}")

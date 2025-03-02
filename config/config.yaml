@@ -4,6 +4,9 @@
 monitoring:
   port: 8080
   enabled: true
+  auth_enabled: false
+  username: admin     # Default username, better to use env vars
+  password: password  # Default password, better to use env vars
 
 # Browser Settings
 browser:

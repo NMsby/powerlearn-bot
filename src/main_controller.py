@@ -4,6 +4,7 @@ Orchestrates the login/logout cycle and manages all components.
 """
 
 import logging
+import os
 import signal
 import time
 import traceback
@@ -49,12 +50,36 @@ class MainController:
         self.session_validator = SessionValidator(self.config)
         self.activity_simulator = ActivitySimulator(self.config['activity'])
 
-        # Initialize monitoring
-        dashboard_port = self.config.get('monitoring', {}).get('port', 8080)
-        self.monitoring = MonitoringManager(server_port=dashboard_port)
+        # Initialize monitoring with authentication if configured
+        monitoring_config = self.config.get('monitoring', {})
+        dashboard_port = monitoring_config.get('port', 8080)
+        auth_enabled = monitoring_config.get('auth_enabled', False)
 
-        # Log Message about the dashboard
-        self.logger.info(f"Monitoring dashboard available at http://localhost:{dashboard_port}")
+        # Get authentication credentials
+        username = None
+        password = None
+        if auth_enabled:
+            # Try environment variables first
+            username = os.getenv('DASHBOARD_USERNAME') or monitoring_config.get('username')
+            password = os.getenv('DASHBOARD_PASSWORD') or monitoring_config.get('password')
+
+            # If credentials are missing, disable authentication
+            if not username or not password:
+                self.logger.warning("Dashboard authentication enabled but credentials missing. Disabling authentication.")
+                auth_enabled = False
+
+        self.monitoring = MonitoringManager(
+            server_port=dashboard_port,
+            auth_enabled=auth_enabled,
+            username=username,
+            password=password,
+        )
+
+        # Log dashboard access info
+        if auth_enabled:
+            self.logger.info(f"Secured monitoring dashboard available at http://localhost:{dashboard_port}")
+        else:
+            self.logger.info(f"Monitoring dashboard available at http://localhost:{dashboard_port}")
 
         # Browser controller will be initialized during run
         self.browser_controller = None
